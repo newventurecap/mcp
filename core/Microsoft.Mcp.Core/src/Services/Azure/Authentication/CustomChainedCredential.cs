@@ -150,7 +150,7 @@ internal class CustomChainedCredential(string? tenantId = null, ILogger<CustomCh
 
         if (ShouldUseOnlyBrokerCredential())
         {
-            return CreateBrowserCredential(tenantId, authRecord);
+            return CreateBrowserCredential(tenantId, authRecord, useDefaultBrokerAccount: false);
         }
 
         var creds = new List<TokenCredential>();
@@ -197,7 +197,7 @@ internal class CustomChainedCredential(string? tenantId = null, ILogger<CustomCh
 
         if (shouldAddBrowserFallback)
         {
-            creds.Add(CreateBrowserCredential(tenantId, authRecord));
+            creds.Add(CreateBrowserCredential(tenantId, authRecord, !ShouldUseOnlyBrokerCredential() && authRecord is null));
         }
 
         // Add DeviceCodeCredential as a fallback for headless environments (Docker, WSL, SSH, CI)
@@ -218,7 +218,7 @@ internal class CustomChainedCredential(string? tenantId = null, ILogger<CustomCh
 
     private static string TokenCacheName = "azure-mcp-msal.cache";
 
-    private static TokenCredential CreateBrowserCredential(string? tenantId, AuthenticationRecord? authRecord)
+    internal static TokenCredential CreateBrowserCredential(string? tenantId, AuthenticationRecord? authRecord, bool useDefaultBrokerAccount)
     {
         string? clientId = Environment.GetEnvironmentVariable(ClientIdEnvVarName);
 
@@ -226,7 +226,7 @@ internal class CustomChainedCredential(string? tenantId = null, ILogger<CustomCh
 
         InteractiveBrowserCredentialBrokerOptions brokerOptions = new(handle)
         {
-            UseDefaultBrokerAccount = !ShouldUseOnlyBrokerCredential() && authRecord is null,
+            UseDefaultBrokerAccount = useDefaultBrokerAccount,
             TenantId = string.IsNullOrEmpty(tenantId) ? null : tenantId,
             AuthenticationRecord = authRecord,
             TokenCachePersistenceOptions = new TokenCachePersistenceOptions()
